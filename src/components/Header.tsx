@@ -1,9 +1,11 @@
 interface HeaderProps {
   agentCount: number;
   activeCount: number;
+  connected: boolean;
+  error: string | null;
 }
 
-export default function Header({ agentCount, activeCount }: HeaderProps) {
+export default function Header({ agentCount, activeCount, connected, error }: HeaderProps) {
   return (
     <header className="border-b border-gray-200 bg-white px-6 py-4">
       <div className="flex items-center justify-between">
@@ -31,10 +33,23 @@ export default function Header({ agentCount, activeCount }: HeaderProps) {
             <p className="text-xs text-gray-500">Total Agents</p>
           </div>
           <div className="h-8 w-px bg-gray-200" />
-          <div className="flex items-center gap-2 rounded-full bg-green-50 px-3 py-1.5">
-            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs font-medium text-green-700">
-              System Online
+          <div
+            className={`flex items-center gap-2 rounded-full px-3 py-1.5 ${
+              connected ? 'bg-green-50' : 'bg-red-50'
+            }`}
+            title={error || undefined}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'
+              }`}
+            />
+            <span
+              className={`text-xs font-medium ${
+                connected ? 'text-green-700' : 'text-red-700'
+              }`}
+            >
+              {connected ? 'API Connected' : 'Disconnected'}
             </span>
           </div>
         </div>
