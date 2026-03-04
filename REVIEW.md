@@ -6,82 +6,119 @@
 
 ---
 
-## Summary
+## Dashboard Data Source Analysis
 
-This repository is in its **initial scaffolding phase** — it contains only a `README.md` file with a one-line project description. No source code, configuration, tests, CI/CD, or project structure has been implemented yet. The scores below reflect the current state of the repository.
+> Related issue: [#8 — Dashboard Data Source Analysis](https://github.com/osortega/office/issues/8)
+
+### Finding: All data is hardcoded
+
+The dashboard is **entirely powered by static mock data**. There are zero API calls, `fetch` requests, React state hooks (`useState`/`useEffect`), WebSocket connections, or any external data source anywhere in the codebase.
+
+### Data flow
+
+```
+src/data/mockData.ts  →  src/App.tsx  →  Components (props)
+     (static arrays)       (import)        (render only)
+```
+
+- **`src/data/mockData.ts`** — Exports two hardcoded arrays: `agents` (4 workers) and `projects` (3 projects)
+- **`src/data/types.ts`** — TypeScript interfaces (`Agent`, `Project`) defining the data shape
+- **`src/App.tsx`** — Imports mock data directly and passes it as props to `OfficeFloor` and `PortfolioPanel`
+
+### What is displayed
+
+**Agents:** 4 hardcoded workers with static name, role, status (`working`/`idle`/`completed`), current task, and success rate.
+
+**Projects:** 3 hardcoded projects with static name, status, progress percentage, and assigned agent IDs.
+
+**Header:** Active/total agent counts derived from mock data. The "System Online" badge is always shown regardless of actual system state.
+
+### Implications
+
+- The dashboard will always show the same data regardless of any real-world changes
+- No data will ever update without redeploying the app with changed source code
+- The "System Online" indicator is cosmetic and does not reflect any health check
+
+### What would be needed for real data
+
+1. A backend API exposing agent status and project data
+2. React state management (`useState` + `useEffect` or React Query/SWR)
+3. Loading/error UI states (the current components assume data is always present)
+4. Real-time updates via polling or WebSocket/SSE for live worker status
+5. Environment configuration (`VITE_API_BASE_URL`) for per-deployment API endpoints
 
 ---
 
 ## Category Assessments
 
-### 1. Code Quality — Score: 1/10
-- **No source code exists.** The repository contains only `README.md`.
-- No TypeScript (or any language) configuration, no linting rules, no formatting setup.
-- No project structure (e.g., `src/`, `public/`, `components/`).
+### 1. Code Quality — Score: 6/10
+- Clean TypeScript with proper type definitions in `src/data/types.ts`
+- Components are well-structured with clear prop interfaces
+- Tailwind CSS used consistently for styling
+- No linting or formatting tools configured (no ESLint/Prettier)
 
 ### 2. Test Coverage — Score: 1/10
-- **No tests exist.** No testing framework configured.
+- No tests exist. No testing framework configured.
 - No test files, no coverage reports, no CI integration for tests.
 
-### 3. Security — Score: 5/10
-- No application code means no direct vulnerabilities (XSS, CSRF, injection).
-- No `.env.example` or secrets management documented.
-- No `.gitignore` file — risk of accidentally committing secrets, `node_modules`, build artifacts, or IDE config when development begins.
+### 3. Security — Score: 6/10
+- No API calls or user input handling means minimal attack surface
+- `.gitignore` is present, protecting against accidental secret commits
+- No `.env.example` or secrets management documented
 
-### 4. Performance — Score: N/A
-- No assets, bundles, or runtime code to evaluate.
-- No build tooling configured.
+### 4. Performance — Score: 7/10
+- Vite build tooling with tree-shaking and modern bundling
+- Static data means zero network latency for content
+- Tailwind CSS with PostCSS for optimized stylesheets
 
-### 5. UX Review — Score: N/A
-- No UI exists to evaluate.
-- No design system, accessibility standards, or responsive design documented.
+### 5. UX Review — Score: 7/10
+- Clean, modern UI with clear visual hierarchy
+- Responsive grid layout (`grid-cols-1 md:grid-cols-2`)
+- Status indicators with appropriate color coding
+- Animated typing indicator for working agents
+- No loading states or error handling (not needed with static data, but will be needed with real data)
 
-### 6. Technical Debt — Score: 3/10
-- The entire project is yet to be built, so there are no TODOs or hacks.
-- However, starting without a `.gitignore`, project scaffolding, or architecture plan creates debt from day one.
+### 6. Technical Debt — Score: 5/10
+- Hardcoded mock data is the primary debt — must be replaced for production use
+- "System Online" indicator is misleading (always shows online)
+- No state management patterns established for when dynamic data is added
 
 ### 7. Documentation — Score: 2/10
-- `README.md` exists but is minimal — one line describing the project purpose.
-- **Missing:** Setup instructions, architecture overview, contributing guidelines, license, API docs, tech stack decisions.
+- `README.md` exists but is minimal
+- **Missing:** Setup instructions, architecture overview, contributing guidelines, API docs
 
-### 8. Dependencies — Score: 1/10
-- No `package.json`, `requirements.txt`, or any dependency manifest.
-- No dependency management or lock files.
-- No Dependabot or Renovate configured.
+### 8. Dependencies — Score: 5/10
+- `package.json` with proper dependency management and lock file
+- Vite, React, TypeScript, Tailwind CSS — modern, well-maintained stack
+- No Dependabot or Renovate configured for automated updates
 
 ---
 
-## Overall Score: 2/10
+## Overall Score: 5/10
 
-The repository is essentially an empty project with only a README placeholder.
+The codebase is a clean, well-structured static dashboard prototype. The primary gap is the complete absence of real data integration — all content is hardcoded mock data compiled into the bundle.
 
 ---
 
 ## Top 5 Actionable Recommendations (by impact)
 
-### 1. 🏗️ Scaffold the Project (Critical)
-Set up the project structure with a modern framework (e.g., Next.js, Vite + React). Include:
-- `package.json` with scripts (`dev`, `build`, `test`, `lint`)
-- TypeScript configuration (`tsconfig.json`)
-- ESLint + Prettier configuration
-- Directory structure (`src/`, `components/`, `lib/`, `tests/`)
+### 1. 🔌 Replace Mock Data with Real API Integration (Critical)
+Connect to a real backend API to display actual worker status and project data. Add `useState`/`useEffect` or React Query for data fetching, with loading/error states in all components.
 
-### 2. 🔒 Add `.gitignore` and Security Foundations (Critical)
-- Add a comprehensive `.gitignore` (node_modules, .env, build output, IDE files)
-- Add `.env.example` with placeholder values
-- Document secrets management approach
+### 2. 🧪 Set Up Testing Infrastructure (High)
+- Configure Vitest (already using Vite) with React Testing Library
+- Add component tests for `AgentDesk`, `OfficeFloor`, `PortfolioPanel`
+- Add a CI pipeline (GitHub Actions) with test steps
 
-### 3. 🧪 Set Up Testing Infrastructure (High)
-- Configure a test runner (Vitest or Jest)
-- Add a CI pipeline (GitHub Actions) with test + lint steps
-- Establish coverage thresholds from the start
+### 3. 🔧 Fix "System Online" Indicator (Medium)
+Either connect it to a real health check endpoint or remove it to avoid misleading users into thinking the system is actively monitored.
 
-### 4. 📖 Expand Documentation (High)
-- Add setup instructions, architecture decisions, and tech stack rationale to `README.md`
-- Add `CONTRIBUTING.md` with coding standards and PR process
-- Add a `LICENSE` file
+### 4. 📖 Expand Documentation (Medium)
+- Add setup instructions and development workflow to `README.md`
+- Document the data model and component architecture
+- Add `CONTRIBUTING.md` with coding standards
 
-### 5. 📦 Configure Dependency Management (Medium)
-- Set up Dependabot or Renovate for automated dependency updates
-- Add `npm audit` or equivalent to CI pipeline
-- Pin dependency versions with a lock file
+### 5. 🛠️ Add Linting and Formatting (Medium)
+- Configure ESLint with TypeScript rules
+- Add Prettier for consistent formatting
+- Add pre-commit hooks with Husky/lint-staged
