@@ -31,6 +31,14 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+      - name: Configure Pages to use Actions deployment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api repos/${{ github.repository }}/pages \
+            -X PUT \
+            -f build_type=workflow 2>/dev/null || true
+
       - uses: actions/configure-pages@v4
 
       - uses: actions/upload-pages-artifact@v3
