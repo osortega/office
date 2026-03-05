@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchDashboard, DashboardData, ApiWorker } from './services/api';
+import { FALLBACK_DASHBOARD } from './data/mockData';
 import { Agent, Project } from './data/types';
 import Header from './components/Header';
 import OfficeFloor from './components/OfficeFloor';
@@ -92,6 +93,14 @@ export default function App() {
       const message = err instanceof Error ? err.message : 'Failed to connect to API';
       setError(message);
       setConnected(false);
+      // Use fallback data so the UI is never blank
+      if (agents.length === 0) {
+        const { agents: fa, projects: fp } = transformData(FALLBACK_DASHBOARD);
+        setAgents(fa);
+        setProjects(fp);
+        setWorkers(FALLBACK_DASHBOARD.workers || []);
+        setGoals(FALLBACK_DASHBOARD.goals || []);
+      }
     } finally {
       if (isInitial) setLoading(false);
       setRefreshing(false);
