@@ -21,8 +21,9 @@ export default function OfficeFloor({ agents, workers }: OfficeFloorProps) {
           🏢 Office Floor
         </h2>
         <p className="text-sm text-gray-500">
-          {agents.filter((a) => a.status === 'working').length} of{' '}
-          {agents.length} agents currently working
+          {agents.length > 0
+            ? `${agents.filter((a) => a.status === 'working').length} of ${agents.length} agents currently working`
+            : 'Waiting for agents to come online...'}
         </p>
       </div>
 
@@ -49,13 +50,23 @@ export default function OfficeFloor({ agents, workers }: OfficeFloorProps) {
         </div>
       )}
 
+      {/* Empty state */}
+      {agents.length === 0 && (
+        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 py-16">
+          <span className="text-4xl">🏗️</span>
+          <p className="mt-3 text-sm font-medium text-gray-600">No agents online</p>
+          <p className="mt-1 text-xs text-gray-400">Agents will appear here once they connect to the API</p>
+        </div>
+      )}
+
       {/* Office grid */}
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-2">
-        {/* Agent desks */}
-        {agents.map((agent) => (
-          <AgentDesk key={agent.id} agent={agent} />
-        ))}
-      </div>
+      {agents.length > 0 && (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-2">
+          {agents.map((agent) => (
+            <AgentDesk key={agent.id} agent={agent} />
+          ))}
+        </div>
+      )}
 
       {/* Office decorations */}
       <div className="mt-8">

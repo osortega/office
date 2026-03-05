@@ -36,14 +36,27 @@ export interface DashboardData {
   goals?: string[];
 }
 
-export async function fetchDashboard(): Promise<DashboardData> {
-  const response = await fetch(API_URL, {
-    headers: { 'Accept': 'application/json' },
-  });
+export async function fetchDashboard(retries = 2): Promise<DashboardData> {
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(API_URL, {
+        headers: { 'Accept': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+      }
+    }
   }
 
-  return response.json();
+  throw lastError!;
 }
