@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'https://openclaw.onrender.com/api/dashboard';
+const API_URL = import.meta.env.VITE_API_URL || 'https://cto.octanelabs.xyz/api/dashboard';
 
 export interface ApiAgent {
   name: string;
