@@ -104,6 +104,19 @@ export default function AgentDesk({ agent }: AgentDeskProps) {
             </p>
           </div>
         )}
+
+        {agent.skills && agent.skills.length > 0 && (
+          <div className="flex flex-wrap gap-1 pt-1">
+            {agent.skills.map((skill) => (
+              <span
+                key={skill}
+                className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500"
+              >
+                {skill}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

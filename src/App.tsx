@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchDashboard, DashboardData } from './services/api';
+import { fetchDashboard, DashboardData, ApiWorker } from './services/api';
 import { Agent, Project } from './data/types';
 import Header from './components/Header';
 import OfficeFloor from './components/OfficeFloor';
@@ -69,6 +69,7 @@ const POLL_INTERVAL = 10_000;
 export default function App() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [workers, setWorkers] = useState<ApiWorker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
@@ -79,6 +80,7 @@ export default function App() {
       const { agents: a, projects: p } = transformData(data);
       setAgents(a);
       setProjects(p);
+      setWorkers(data.workers || []);
       setConnected(true);
       setError(null);
     } catch (err) {
@@ -122,7 +124,7 @@ export default function App() {
       )}
 
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
-        <OfficeFloor agents={agents} />
+        <OfficeFloor agents={agents} workers={workers} />
         <PortfolioPanel projects={projects} agents={agents} />
       </div>
     </div>
