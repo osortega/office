@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchDashboard, DashboardData } from './services/api';
-import { Agent, Project } from './data/types';
+import { Agent, Project, Worker } from './data/types';
 import Header from './components/Header';
 import OfficeFloor from './components/OfficeFloor';
 import PortfolioPanel from './components/PortfolioPanel';
@@ -24,7 +24,7 @@ function mapProjectStatus(status: string): 'active' | 'improving' | 'completed' 
   return 'active';
 }
 
-function transformData(data: DashboardData): { agents: Agent[]; projects: Project[] } {
+function transformData(data: DashboardData): { agents: Agent[]; projects: Project[]; workers: Worker[] } {
   const agents: Agent[] = data.agents.map((a, i) => ({
     id: `agent-${i + 1}`,
     name: a.name,
@@ -61,7 +61,15 @@ function transformData(data: DashboardData): { agents: Agent[]; projects: Projec
     };
   });
 
-  return { agents, projects };
+  const workers: Worker[] = (data.workers || []).map(w => ({
+    worker_id: w.worker_id,
+    repo: w.repo,
+    status: w.status,
+    started_at: w.started_at,
+    agent_name: w.agent_name,
+  }));
+
+  return { agents, projects, workers };
 }
 
 const POLL_INTERVAL = 10_000;
@@ -69,6 +77,7 @@ const POLL_INTERVAL = 10_000;
 export default function App() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
@@ -76,9 +85,10 @@ export default function App() {
   const loadData = useCallback(async (isInitial = false) => {
     try {
       const data = await fetchDashboard();
-      const { agents: a, projects: p } = transformData(data);
+      const { agents: a, projects: p, workers: w } = transformData(data);
       setAgents(a);
       setProjects(p);
+      setWorkers(w);
       setConnected(true);
       setError(null);
     } catch (err) {
@@ -122,7 +132,7 @@ export default function App() {
       )}
 
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
-        <OfficeFloor agents={agents} />
+        <OfficeFloor agents={agents} workers={workers} />
         <PortfolioPanel projects={projects} agents={agents} />
       </div>
     </div>
