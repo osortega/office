@@ -75,6 +75,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -87,6 +88,7 @@ export default function App() {
       setWorkers(data.workers || []);
       setGoals(data.goals || []);
       setConnected(true);
+      setDemoMode(false);
       setError(null);
       setLastUpdated(new Date());
     } catch (err) {
@@ -94,13 +96,12 @@ export default function App() {
       setError(message);
       setConnected(false);
       // Use fallback data so the UI is never blank
-      if (agents.length === 0) {
-        const { agents: fa, projects: fp } = transformData(FALLBACK_DASHBOARD);
-        setAgents(fa);
-        setProjects(fp);
-        setWorkers(FALLBACK_DASHBOARD.workers || []);
-        setGoals(FALLBACK_DASHBOARD.goals || []);
-      }
+      const { agents: fa, projects: fp } = transformData(FALLBACK_DASHBOARD);
+      setAgents(fa);
+      setProjects(fp);
+      setWorkers(FALLBACK_DASHBOARD.workers || []);
+      setGoals(FALLBACK_DASHBOARD.goals || []);
+      setDemoMode(true);
     } finally {
       if (isInitial) setLoading(false);
       setRefreshing(false);
@@ -144,10 +145,10 @@ export default function App() {
         goals={goals}
       />
 
-      {error && agents.length === 0 && (
-        <div className="border-b border-red-200 bg-red-50 px-6 py-3">
-          <p className="text-sm text-red-700">
-            ⚠️ Unable to connect to API: {error}
+      {demoMode && (
+        <div className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-center">
+          <p className="text-sm font-medium text-amber-800">
+            🎭 Demo Mode — Showing sample data. Connect to the CTO API for live agent activity.
           </p>
         </div>
       )}
