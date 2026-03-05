@@ -36,14 +36,20 @@ export interface DashboardData {
   goals?: string[];
 }
 
-export async function fetchDashboard(retries = 2): Promise<DashboardData> {
+export async function fetchDashboard(retries = 1): Promise<DashboardData> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
       const response = await fetch(API_URL, {
         headers: { 'Accept': 'application/json' },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`API error: ${response.status} ${response.statusText}`);
@@ -51,9 +57,13 @@ export async function fetchDashboard(retries = 2): Promise<DashboardData> {
 
       return await response.json();
     } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        lastError = new Error('API request timed out');
+      } else {
+        lastError = err instanceof Error ? err : new Error(String(err));
+      }
       if (attempt < retries) {
-        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+        await new Promise((r) => setTimeout(r, 1000));
       }
     }
   }
