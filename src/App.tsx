@@ -67,19 +67,23 @@ function transformData(data: DashboardData): { agents: Agent[]; projects: Projec
 
 const POLL_INTERVAL = 10_000;
 
+const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
+
 export default function App() {
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [workers, setWorkers] = useState<ApiWorker[]>([]);
-  const [goals, setGoals] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const fallback = transformData(FALLBACK_DASHBOARD);
+  const [agents, setAgents] = useState<Agent[]>(isGitHubPages ? fallback.agents : []);
+  const [projects, setProjects] = useState<Project[]>(isGitHubPages ? fallback.projects : []);
+  const [workers, setWorkers] = useState<ApiWorker[]>(isGitHubPages ? (FALLBACK_DASHBOARD.workers || []) : []);
+  const [goals, setGoals] = useState<string[]>(isGitHubPages ? (FALLBACK_DASHBOARD.goals || []) : []);
+  const [loading, setLoading] = useState(!isGitHubPages);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
-  const [demoMode, setDemoMode] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [demoMode, setDemoMode] = useState(isGitHubPages);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(isGitHubPages ? new Date() : null);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async (isInitial = false) => {
+    if (isGitHubPages) return;
     try {
       const data = await fetchDashboard();
       const { agents: a, projects: p } = transformData(data);
@@ -109,11 +113,13 @@ export default function App() {
   }, []);
 
   const handleRefresh = useCallback(() => {
+    if (isGitHubPages) return;
     setRefreshing(true);
     loadData();
   }, [loadData]);
 
   useEffect(() => {
+    if (isGitHubPages) return;
     loadData(true);
     const interval = setInterval(() => loadData(), POLL_INTERVAL);
     return () => clearInterval(interval);
