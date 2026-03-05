@@ -44,6 +44,13 @@ export default function PortfolioPanel({ projects, agents }: PortfolioPanelProps
       </div>
 
       <div className="space-y-3 px-5 pb-5">
+        {projects.length === 0 && (
+          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 py-10">
+            <span className="text-3xl">📋</span>
+            <p className="mt-2 text-sm font-medium text-gray-500">No projects yet</p>
+            <p className="mt-1 text-xs text-gray-400">Projects will appear when loaded from the API</p>
+          </div>
+        )}
         {projects.map((project) => {
           const colors = statusColors[project.status];
           return (

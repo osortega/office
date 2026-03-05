@@ -3,9 +3,17 @@ interface HeaderProps {
   activeCount: number;
   connected: boolean;
   error: string | null;
+  lastUpdated: Date | null;
+  onRefresh: () => void;
+  refreshing: boolean;
+  goals: string[];
 }
 
-export default function Header({ agentCount, activeCount, connected, error }: HeaderProps) {
+export default function Header({ agentCount, activeCount, connected, error, lastUpdated, onRefresh, refreshing, goals }: HeaderProps) {
+  const timeAgo = lastUpdated
+    ? `Updated ${lastUpdated.toLocaleTimeString()}`
+    : '';
+
   return (
     <header className="border-b border-gray-200 bg-white px-6 py-4">
       <div className="flex items-center justify-between">
@@ -17,7 +25,9 @@ export default function Header({ agentCount, activeCount, connected, error }: He
             <h1 className="text-xl font-bold text-gray-900">
               Office Dashboard
             </h1>
-            <p className="text-xs text-gray-500">Digital workspace overview</p>
+            <p className="text-xs text-gray-500">
+              {timeAgo || 'Digital workspace overview'}
+            </p>
           </div>
         </div>
 
@@ -33,6 +43,26 @@ export default function Header({ agentCount, activeCount, connected, error }: He
             <p className="text-xs text-gray-500">Total Agents</p>
           </div>
           <div className="h-8 w-px bg-gray-200" />
+          <button
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 disabled:opacity-50"
+            title="Refresh data"
+          >
+            <svg
+              className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.183"
+              />
+            </svg>
+          </button>
           <div
             className={`flex items-center gap-2 rounded-full px-3 py-1.5 ${
               connected ? 'bg-green-50' : 'bg-red-50'
@@ -54,6 +84,19 @@ export default function Header({ agentCount, activeCount, connected, error }: He
           </div>
         </div>
       </div>
+
+      {goals.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {goals.map((goal, i) => (
+            <span
+              key={i}
+              className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600"
+            >
+              🎯 {goal}
+            </span>
+          ))}
+        </div>
+      )}
     </header>
   );
 }

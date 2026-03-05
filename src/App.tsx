@@ -70,9 +70,12 @@ export default function App() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [workers, setWorkers] = useState<ApiWorker[]>([]);
+  const [goals, setGoals] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async (isInitial = false) => {
     try {
@@ -81,16 +84,24 @@ export default function App() {
       setAgents(a);
       setProjects(p);
       setWorkers(data.workers || []);
+      setGoals(data.goals || []);
       setConnected(true);
       setError(null);
+      setLastUpdated(new Date());
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to connect to API';
       setError(message);
       setConnected(false);
     } finally {
       if (isInitial) setLoading(false);
+      setRefreshing(false);
     }
   }, []);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData();
+  }, [loadData]);
 
   useEffect(() => {
     loadData(true);
@@ -113,7 +124,16 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col bg-gray-50">
-      <Header agentCount={agents.length} activeCount={activeCount} connected={connected} error={error} />
+      <Header
+        agentCount={agents.length}
+        activeCount={activeCount}
+        connected={connected}
+        error={error}
+        lastUpdated={lastUpdated}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
+        goals={goals}
+      />
 
       {error && agents.length === 0 && (
         <div className="border-b border-red-200 bg-red-50 px-6 py-3">
