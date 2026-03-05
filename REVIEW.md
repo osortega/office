@@ -1,6 +1,6 @@
 # Portfolio Review: Code Quality Assessment
 
-**Date:** 2026-03-04
+**Date:** 2026-03-05
 **Repository:** osortega/office
 **Description:** A visual office dashboard where the CEO can see agents working, their current tasks, and work history
 
@@ -8,117 +8,121 @@
 
 ## Dashboard Data Source Analysis
 
-> Related issue: [#8 — Dashboard Data Source Analysis](https://github.com/osortega/office/issues/8)
+### Current State: Live API Integration ✅
 
-### Finding: All data is hardcoded
-
-The dashboard is **entirely powered by static mock data**. There are zero API calls, `fetch` requests, React state hooks (`useState`/`useEffect`), WebSocket connections, or any external data source anywhere in the codebase.
+Since PRs #10–#12, the dashboard fetches live data from a CTO bot API at `cto.octanelabs.xyz/api/dashboard`. The previous mock-data-only architecture has been replaced.
 
 ### Data flow
 
 ```
-src/data/mockData.ts  →  src/App.tsx  →  Components (props)
-     (static arrays)       (import)        (render only)
+CTO API (remote)  →  src/services/api.ts  →  src/App.tsx (state)  →  Components (props)
+   (fetch + retry)     (transform)             (useState/useEffect)     (render)
 ```
 
-- **`src/data/mockData.ts`** — Exports two hardcoded arrays: `agents` (4 workers) and `projects` (3 projects)
-- **`src/data/types.ts`** — TypeScript interfaces (`Agent`, `Project`) defining the data shape
-- **`src/App.tsx`** — Imports mock data directly and passes it as props to `OfficeFloor` and `PortfolioPanel`
+- **`src/services/api.ts`** — Fetches from remote API with retry logic (2 retries, exponential backoff)
+- **`src/App.tsx`** — Manages state via `useState`/`useEffect`, polls every 10 seconds, transforms API data
+- **`src/data/types.ts`** — TypeScript interfaces for internal component types
+- **`src/data/mockData.example.ts`** — Example mock data (not imported anywhere in production code)
 
 ### What is displayed
 
-**Agents:** 4 hardcoded workers with static name, role, status (`working`/`idle`/`completed`), current task, and success rate.
+**Agents:** Dynamically loaded API from name, role, status, current task, success rate, skills, description. 
 
-**Projects:** 3 hardcoded projects with static name, status, progress percentage, and assigned agent IDs.
+**Workers:** Active worker banner showing real-time running tasks with repo info.
 
-**Header:** Active/total agent counts derived from mock data. The "System Online" badge is always shown regardless of actual system state.
+**Projects:** Task-level progress calculated from API data with assigned agent mapping.
 
-### Implications
+**Header:** Real-time connection status indicator, manual refresh button, last-updated timestamp, and strategic goals.
 
-- The dashboard will always show the same data regardless of any real-world changes
-- No data will ever update without redeploying the app with changed source code
-- The "System Online" indicator is cosmetic and does not reflect any health check
+### Strengths
 
-### What would be needed for real data
-
-1. A backend API exposing agent status and project data
-2. React state management (`useState` + `useEffect` or React Query/SWR)
-3. Loading/error UI states (the current components assume data is always present)
-4. Real-time updates via polling or WebSocket/SSE for live worker status
-5. Environment configuration (`VITE_API_BASE_URL`) for per-deployment API endpoints
+- Real API integration with retry and error handling
+- Polling for near-real-time updates (10s interval)
+- Loading spinner, error banner, and empty-state UI for all data states
+- Connection status indicator reflects actual API reachability
 
 ---
 
 ## Category Assessments
 
-### 1. Code Quality — Score: 6/10
-- Clean TypeScript with proper type definitions in `src/data/types.ts`
-- Components are well-structured with clear prop interfaces
-- Tailwind CSS used consistently for styling
-- No linting or formatting tools configured (no ESLint/Prettier)
+### 1. Code Quality — Score: 7/10
+- Clean TypeScript with proper type definitions across `types.ts` and `api.ts`
+- Components are well-structured with explicit prop interfaces
+- Tailwind CSS used consistently; custom animations defined in `tailwind.config.js`
+- Good separation: API layer → transform → state → render
+- **Gap:** No linting (ESLint) or formatting (Prettier) tools configured
+- **Gap:** No React error boundary for graceful crash recovery
 
-### 2. Test Coverage — Score: 1/10
-- No tests exist. No testing framework configured.
-- No test files, no coverage reports, no CI integration for tests.
+### 2. Test Coverage — Score: 0/10
+- Zero test files exist (no `*.test.*` or `*.spec.*` files)
+- No testing framework installed (no Vitest, Jest, React Testing Library, Cypress, or Playwright)
+- No test script in `package.json`
+- No CI test step in the GitHub Actions workflow
 
-### 3. Security — Score: 6/10
-- No API calls or user input handling means minimal attack surface
-- `.gitignore` is present, protecting against accidental secret commits
-- No `.env.example` or secrets management documented
+### 3. Security — Score: 5/10
+- API URL defaults to a hardcoded external endpoint (`cto.octanelabs.xyz`) — configurable via `VITE_API_URL`
+- **No API authentication** — the endpoint is fetched without credentials or API keys
+- **No response validation** — `response.json()` is trusted without schema validation; malformed API data could inject unexpected content
+- `.env.example` exists with proper guidance; `.gitignore` covers `.env` files
+- External links use `rel="noopener noreferrer"` ✅
 
 ### 4. Performance — Score: 7/10
-- Vite build tooling with tree-shaking and modern bundling
-- Static data means zero network latency for content
-- Tailwind CSS with PostCSS for optimized stylesheets
+- Small production bundle: 162 KB JS (52 KB gzipped), 19 KB CSS (4 KB gzipped)
+- Vite tree-shaking and modern ESM output
+- 10-second polling is reasonable but creates unnecessary network traffic when tab is backgrounded
+- **Gap:** No `React.memo` or `useMemo` — all components re-render on every poll cycle even if data is unchanged
+- **Gap:** No visibility-based polling (e.g., pause when tab is hidden via `document.hidden`)
+- **Gap:** No code splitting or lazy loading (acceptable at current bundle size)
 
-### 5. UX Review — Score: 7/10
-- Clean, modern UI with clear visual hierarchy
-- Responsive grid layout (`grid-cols-1 md:grid-cols-2`)
-- Status indicators with appropriate color coding
-- Animated typing indicator for working agents
-- No loading states or error handling (not needed with static data, but will be needed with real data)
+### 5. UX / Accessibility — Score: 5/10
+- Clean, modern UI with clear visual hierarchy and color-coded statuses
+- Responsive layout: flex column on mobile, row on desktop (`lg:flex-row`)
+- Loading spinner and error states provide good feedback
+- **Critical gap:** Zero `aria-*` attributes in the entire codebase
+- **Critical gap:** Zero `role` attributes on interactive/landmark elements
+- **Critical gap:** SVG icons have no accessible labels (`aria-label` or `<title>`)
+- **Critical gap:** Refresh button has `title` but no `aria-label`
+- StatusBadge includes text labels alongside color dots (good for color-blind users)
 
-### 6. Technical Debt — Score: 5/10
-- Hardcoded mock data is the primary debt — must be replaced for production use
-- "System Online" indicator is misleading (always shows online)
-- No state management patterns established for when dynamic data is added
+### 6. Deployment — Score: 4/10
+- **GitHub Pages is broken:** `vite.config.ts` sets `base: '/'` but GitHub Pages serves from `/office/` subdirectory, causing all asset paths (`/assets/...`) to resolve to `osortega.github.io/assets/...` → 404
+- Vercel deployment (`vercel.json` with SPA rewrite) would work correctly with `base: '/'`
+- Dual deployment configs (GitHub Pages workflow + vercel.json) create confusion about the canonical deployment target
+- CI workflow has no test or lint step before deploy
 
-### 7. Documentation — Score: 2/10
-- `README.md` exists but is minimal
-- **Missing:** Setup instructions, architecture overview, contributing guidelines, API docs
+### 7. Documentation — Score: 4/10
+- `README.md` documents setup, features, and project structure
+- **Stale info:** README references `src/data/mockData.ts` which was renamed to `mockData.example.ts`; says "swap with API later" but API integration is already done
+- No API documentation or architecture decision records
+- No contributing guidelines
 
-### 8. Dependencies — Score: 5/10
-- `package.json` with proper dependency management and lock file
-- Vite, React, TypeScript, Tailwind CSS — modern, well-maintained stack
-- No Dependabot or Renovate configured for automated updates
+### 8. Dependencies — Score: 6/10
+- Minimal, modern dependency set (React 18, Vite 6, Tailwind 3, TypeScript 5.6)
+- Lock file (`package-lock.json`) present for reproducible builds
+- No Dependabot or Renovate for automated security updates
+- No production dependencies beyond React/ReactDOM — good
 
 ---
 
 ## Overall Score: 5/10
 
-The codebase is a clean, well-structured static dashboard prototype. The primary gap is the complete absence of real data integration — all content is hardcoded mock data compiled into the bundle.
+The codebase is a well-structured, cleanly written React dashboard with real API integration, proper error handling, and a polished visual design. The critical gaps are: zero test coverage, broken GitHub Pages deployment, no accessibility support, and no API response validation. These are tractable issues for a project at this stage.
 
 ---
 
 ## Top 5 Actionable Recommendations (by impact)
 
-### 1. 🔌 Replace Mock Data with Real API Integration (Critical)
-Connect to a real backend API to display actual worker status and project data. Add `useState`/`useEffect` or React Query for data fetching, with loading/error states in all components.
+### 1. 🧪 Add Testing Infrastructure and Basic Tests (Critical)
+Configure Vitest + React Testing Library. Add tests for: API service (fetch/retry logic), data transformation functions in `App.tsx`, and key component rendering (`AgentDesk`, `PortfolioPanel`). Add a test step to the CI workflow before deployment.
 
-### 2. 🧪 Set Up Testing Infrastructure (High)
-- Configure Vitest (already using Vite) with React Testing Library
-- Add component tests for `AgentDesk`, `OfficeFloor`, `PortfolioPanel`
-- Add a CI pipeline (GitHub Actions) with test steps
+### 2. 🔒 Validate API Responses and Add Error Boundaries (High)
+Add runtime schema validation (e.g., Zod) for the `DashboardData` response to prevent malformed API data from crashing or corrupting the UI. Wrap the app in a React error boundary for graceful recovery.
 
-### 3. 🔧 Fix "System Online" Indicator (Medium)
-Either connect it to a real health check endpoint or remove it to avoid misleading users into thinking the system is actively monitored.
+### 3. ♿ Add Accessibility Attributes (High)
+Add `aria-label` to the refresh button and SVG icons. Add `role="status"` to the connection indicator. Add landmark roles (`role="banner"`, `role="main"`, `role="complementary"`) to Header, OfficeFloor, and PortfolioPanel. Ensure keyboard navigability for all interactive elements.
 
-### 4. 📖 Expand Documentation (Medium)
-- Add setup instructions and development workflow to `README.md`
-- Document the data model and component architecture
-- Add `CONTRIBUTING.md` with coding standards
+### 4. 🚀 Fix Deployment and Add Visibility-Based Polling (Medium)
+Either set `base: '/office/'` for GitHub Pages or remove the GitHub Pages workflow in favor of Vercel-only deployment. Add `document.visibilitychange` listener to pause polling when the tab is hidden, reducing unnecessary API calls.
 
-### 5. 🛠️ Add Linting and Formatting (Medium)
-- Configure ESLint with TypeScript rules
-- Add Prettier for consistent formatting
-- Add pre-commit hooks with Husky/lint-staged
+### 5. 📖 Update Documentation and Add Linting (Medium)
+Update `README.md` to reflect current API-driven architecture. Add ESLint + Prettier configuration. Add Dependabot for automated dependency updates. Document the API contract and environment variables.
